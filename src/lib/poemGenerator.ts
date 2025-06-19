@@ -1,102 +1,9 @@
-// For now, we'll provide a simple input for the API key
-// In production, this should be stored securely in environment variables
-let OPENAI_API_KEY = '';
-
-// Function to set the API key (called from the UI)
-export const setOpenAIKey = (key: string) => {
-  OPENAI_API_KEY = key;
-  localStorage.setItem('openai_api_key', key);
-};
-
-// Function to get the API key
-export const getOpenAIKey = (): string => {
-  if (OPENAI_API_KEY) return OPENAI_API_KEY;
-  
-  const stored = localStorage.getItem('openai_api_key');
-  if (stored) {
-    OPENAI_API_KEY = stored;
-    return stored;
-  }
-  
-  return '';
-};
 
 export const generatePoem = async (emotion: string): Promise<string> => {
-  const apiKey = getOpenAIKey();
+  // Simulate a brief delay to make it feel like generation
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
-  if (!apiKey) {
-    throw new Error('OpenAI API key is required. Please add your API key to generate poems.');
-  }
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a poetic soul who transforms emotions into beautiful, heartfelt poetry. Write free verse poems that:
-            - Are deeply emotional and authentic
-            - Use vivid imagery and metaphors
-            - Have a gentle, flowing rhythm
-            - Are 8-12 lines long
-            - Feel like a whispered secret or quiet confession
-            - End with hope or acceptance
-            - Use line breaks for emotional impact
-            
-            Write in a style that feels intimate and healing, like the poem is speaking directly to someone's heart.`
-          },
-          {
-            role: 'user',
-            content: `Write a beautiful, emotional poem about feeling "${emotion}". Make it personal, raw, and healing. Use vivid imagery and metaphors. Let it flow like water, with natural line breaks that enhance the emotional rhythm.`
-          }
-        ],
-        temperature: 0.8,
-        max_tokens: 300,
-        top_p: 0.9,
-        frequency_penalty: 0.3,
-        presence_penalty: 0.3
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      
-      if (response.status === 401) {
-        throw new Error('Invalid API key. Please check your OpenAI API key.');
-      } else if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again in a moment.');
-      } else if (response.status === 400) {
-        throw new Error('Bad request. Please try a different emotion or check your API key.');
-      } else {
-        throw new Error(`API Error: ${errorData.error?.message || 'Failed to generate poem'}`);
-      }
-    }
-
-    const data = await response.json();
-    const poem = data.choices?.[0]?.message?.content?.trim();
-    
-    if (!poem) {
-      throw new Error('No poem was generated. Please try again.');
-    }
-
-    return poem;
-    
-  } catch (error) {
-    console.error('Error generating poem:', error);
-    
-    if (error instanceof Error) {
-      throw error;
-    }
-    
-    // Fallback for network or unknown errors
-    return createFallbackPoem(emotion);
-  }
+  return createFallbackPoem(emotion);
 };
 
 const createFallbackPoem = (emotion: string): string => {
@@ -145,6 +52,46 @@ maybe I'm enough.
 maybe this feeling
 is exactly
 where I need to be.`,
+
+    'anxious': `My mind races like water
+down a mountain stream,
+thoughts tumbling over rocks
+of what-if and maybe-not.
+
+but here, in this breath,
+I am still.
+I am enough.
+I am home.`,
+
+    'euphoric': `I am electricity and starlight,
+every cell singing
+a song I've never heard
+but somehow always knew.
+
+this is what it means
+to be alive,
+to feel the universe
+dancing in my veins.`,
+
+    'nostalgic': `Memory is a gentle thief,
+stealing me away
+to golden afternoons
+that smell like summer rain.
+
+and I realize—
+the past lives in me
+not as loss,
+but as treasure.`,
+
+    'grateful': `Thank you, whispers my heart
+to the morning light,
+to the breath in my lungs,
+to this moment of being.
+
+gratitude flows like honey,
+sweet and golden,
+filling all the empty spaces
+I didn't know existed.`,
     
     'default': `I hold this ${emotion} like a secret,
 tender and raw,
@@ -157,6 +104,7 @@ I am breaking
 open.`
   };
   
+  // Find matching emotion or use default
   const emotionKey = Object.keys(fallbackPoems).find(key => 
     emotion.toLowerCase().includes(key)
   ) || 'default';

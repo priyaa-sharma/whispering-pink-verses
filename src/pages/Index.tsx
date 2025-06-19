@@ -63,7 +63,7 @@ const Index = () => {
             Ever wished your feelings could write poems for you?
           </p>
           <p className="text-sm text-pink-500 mt-2 font-light">
-            Type your mood, and let the code feel with you
+            Type your mood, and let the magic happen
           </p>
         </div>
 
@@ -123,7 +123,7 @@ const Index = () => {
         {/* Footer */}
         <div className="text-center mt-16 pt-8 border-t border-pink-200">
           <p className="text-sm text-gray-500 font-light">
-            🔮 Powered by AI • 🎤 Web Speech API • 💌 Save as love letters
+            🎭 Curated poetry • 🎤 Web Speech API • 💌 Save as love letters
           </p>
           <p className="text-xs text-pink-400 mt-2 italic">
             Because sometimes you don't need advice. You just need a poem.
