@@ -1,4 +1,3 @@
-
 // For now, we'll provide a simple input for the API key
 // In production, this should be stored securely in environment variables
 let OPENAI_API_KEY = '';
@@ -37,7 +36,7 @@ export const generatePoem = async (emotion: string): Promise<string> => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
