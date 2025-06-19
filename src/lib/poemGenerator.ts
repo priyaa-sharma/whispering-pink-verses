@@ -1,96 +1,101 @@
 
-import { pipeline } from '@huggingface/transformers';
+// For now, we'll provide a simple input for the API key
+// In production, this should be stored securely in environment variables
+let OPENAI_API_KEY = '';
 
-// Cache the pipeline to avoid reloading
-let textGenerator: any = null;
-
-const initializeGenerator = async () => {
-  if (!textGenerator) {
-    try {
-      // Use a smaller, faster model for better performance
-      textGenerator = await pipeline(
-        'text-generation',
-        'Xenova/gpt2',
-        { device: 'webgpu' }
-      );
-    } catch (error) {
-      console.log('WebGPU not available, falling back to CPU');
-      textGenerator = await pipeline(
-        'text-generation',
-        'Xenova/gpt2'
-      );
-    }
-  }
-  return textGenerator;
+// Function to set the API key (called from the UI)
+export const setOpenAIKey = (key: string) => {
+  OPENAI_API_KEY = key;
+  localStorage.setItem('openai_api_key', key);
 };
 
-const poeticPrompts = [
-  "In the depths of {emotion}, I find myself",
-  "The world tastes like {emotion} today",
-  "My heart speaks in {emotion}, whispering",
-  "There's a {emotion} that lives in my chest",
-  "I am made of {emotion} and stardust",
-  "The {emotion} flows through me like",
-  "In this moment of {emotion}, I remember",
-  "My soul is painted with {emotion}",
-  "The {emotion} becomes a prayer",
-  "I hold this {emotion} like a secret"
-];
-
-const poemEndings = [
-  "\n\nand in this feeling,\nI find myself\ncompletely,\nbeautifully\nhuman.",
-  "\n\nthis is how we heal—\none breath,\one heartbeat,\none moment\nat a time.",
-  "\n\nand maybe that's enough.\nmaybe I'm enough.\nmaybe this feeling\nis exactly\nwhere I need to be.",
-  "\n\nso I let it flow,\nlet it breathe,\nlet it be\nthe poem\nit was always\nmeant to become.",
-  "\n\nand I realize—\nI am not broken.\nI am breaking\nopen."
-];
+// Function to get the API key
+export const getOpenAIKey = (): string => {
+  if (OPENAI_API_KEY) return OPENAI_API_KEY;
+  
+  const stored = localStorage.getItem('openai_api_key');
+  if (stored) {
+    OPENAI_API_KEY = stored;
+    return stored;
+  }
+  
+  return '';
+};
 
 export const generatePoem = async (emotion: string): Promise<string> => {
+  const apiKey = getOpenAIKey();
+  
+  if (!apiKey) {
+    throw new Error('OpenAI API key is required. Please add your API key to generate poems.');
+  }
+
   try {
-    const generator = await initializeGenerator();
-    
-    // Select a random prompt and customize it
-    const randomPrompt = poeticPrompts[Math.floor(Math.random() * poeticPrompts.length)];
-    const prompt = randomPrompt.replace('{emotion}', emotion.toLowerCase());
-    
-    // Generate text with poetic parameters
-    const result = await generator(prompt, {
-      max_new_tokens: 80,
-      do_sample: true,
-      temperature: 0.8,
-      top_p: 0.9,
-      repetition_penalty: 1.1,
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a poetic soul who transforms emotions into beautiful, heartfelt poetry. Write free verse poems that:
+            - Are deeply emotional and authentic
+            - Use vivid imagery and metaphors
+            - Have a gentle, flowing rhythm
+            - Are 8-12 lines long
+            - Feel like a whispered secret or quiet confession
+            - End with hope or acceptance
+            - Use line breaks for emotional impact
+            
+            Write in a style that feels intimate and healing, like the poem is speaking directly to someone's heart.`
+          },
+          {
+            role: 'user',
+            content: `Write a beautiful, emotional poem about feeling "${emotion}". Make it personal, raw, and healing. Use vivid imagery and metaphors. Let it flow like water, with natural line breaks that enhance the emotional rhythm.`
+          }
+        ],
+        temperature: 0.8,
+        max_tokens: 300,
+        top_p: 0.9,
+        frequency_penalty: 0.3,
+        presence_penalty: 0.3
+      }),
     });
-    
-    let generatedText = result[0].generated_text;
-    
-    // Clean up the generated text
-    generatedText = generatedText.replace(prompt, '').trim();
-    
-    // Format as free verse poetry
-    const lines = generatedText.split(/[.!?]+/).filter(line => line.trim().length > 0);
-    let poem = lines.slice(0, 4).join(',\n').toLowerCase();
-    
-    // Add poetic formatting
-    poem = poem
-      .replace(/\bi\b/g, 'I')
-      .replace(/^(\w)/, (match) => match.toUpperCase())
-      .replace(/,\n(\w)/g, (match, letter) => ',\n' + letter.toLowerCase());
-    
-    // Add a beautiful ending
-    const randomEnding = poemEndings[Math.floor(Math.random() * poemEndings.length)];
-    
-    // If the generated poem is too short or not poetic enough, use a fallback
-    if (poem.length < 20) {
-      poem = createFallbackPoem(emotion);
-    } else {
-      poem = prompt + '\n\n' + poem + randomEnding;
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      
+      if (response.status === 401) {
+        throw new Error('Invalid API key. Please check your OpenAI API key.');
+      } else if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again in a moment.');
+      } else if (response.status === 400) {
+        throw new Error('Bad request. Please try a different emotion or check your API key.');
+      } else {
+        throw new Error(`API Error: ${errorData.error?.message || 'Failed to generate poem'}`);
+      }
     }
+
+    const data = await response.json();
+    const poem = data.choices?.[0]?.message?.content?.trim();
     
+    if (!poem) {
+      throw new Error('No poem was generated. Please try again.');
+    }
+
     return poem;
     
   } catch (error) {
     console.error('Error generating poem:', error);
+    
+    if (error instanceof Error) {
+      throw error;
+    }
+    
+    // Fallback for network or unknown errors
     return createFallbackPoem(emotion);
   }
 };

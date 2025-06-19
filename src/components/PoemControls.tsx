@@ -39,8 +39,7 @@ export const PoemControls: React.FC<PoemControlsProps> = ({
       const preferredVoice = voices.find(voice => 
         voice.name.includes('Female') || 
         voice.name.includes('Samantha') || 
-        voice.name.includes('Karen') ||
-        voice.gender === 'female'
+        voice.name.includes('Karen')
       );
       
       if (preferredVoice) {
