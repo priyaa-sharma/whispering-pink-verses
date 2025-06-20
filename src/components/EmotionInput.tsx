@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { generatePoem } from '@/lib/poemGenerator';
 import { Sparkles, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { generatePoem } from "@/lib/poemGenerator"; // This is the working local one
 
 interface EmotionInputProps {
   onPoemGenerated: (emotion: string, poem: string) => void;
@@ -39,7 +38,7 @@ export const EmotionInput: React.FC<EmotionInputProps> = ({
 
     setIsGenerating(true);
     try {
-      const poem = await generatePoem(emotion);
+      const poem = await generatePoem(emotion); // 💘 From local file
       onPoemGenerated(emotion, poem);
       toast({
         title: "Poetry born",
@@ -74,13 +73,12 @@ export const EmotionInput: React.FC<EmotionInputProps> = ({
           <Textarea
             value={emotion}
             onChange={(e) => setEmotion(e.target.value)}
-            placeholder="Describe your mood, your heart, your moment... 
+            placeholder="Describe your mood, your heart, your moment...
 
 Maybe you're 'drowning in nostalgia' or 'electric with possibility' or just 'tender and tired'..."
             className="min-h-32 resize-none border-pink-200 focus:border-pink-400 focus:ring-pink-300 bg-white/50 placeholder:text-gray-400 placeholder:italic"
             maxLength={200}
           />
-          
           <div className="text-xs text-gray-400 text-right">
             {emotion.length}/200
           </div>
